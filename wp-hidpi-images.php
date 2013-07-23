@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: HiDPI Images
+Plugin Name: WP HiDPI Images
 Plugin URI: http://crowdfavorite.com/wordpress/plugins/ 
 Description: Create and insert high resolution images to support high DPI displays.
 Version: 0.1
@@ -11,7 +11,7 @@ Author URI: http://crowdfavorite.com
 function wphidpi_image_editors($editors) {
 	require_once('hidpi-image-editors.php');
 	// Selection occurs based on a number of requirements but tests sequentially
-	array_unshift($editors, 'WPHiDPI_Image_Editor_GD', 'WPHiDPI_Image_Editor_Imagick');
+	array_unshift($editors, 'WPHiDPI_Image_Editor_GD'); // @TODO WPHiDPI_Image_Editor_Imagick
 	return $editors;
 }
 add_filter('wp_image_editors', 'wphidpi_image_editors');
@@ -23,7 +23,7 @@ function wphidpi_jpeg_quality($quality) {
 
 // Insertion magic, will also work for backend and various get functions 
 function wphidpi_image_downsize($out, $id, $size) {
-	// @todo need to fallback if image size not found
+	
 	remove_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 	if (is_array($size)) {
 		foreach ($size as &$component) {
@@ -38,9 +38,9 @@ function wphidpi_image_downsize($out, $id, $size) {
 		$size = $size.wphidpi_suffix();
 	}
 	$downsize = image_downsize($id, $size);
-	// If downsize is false and this is an intermediate
+
+	// If downsize isn't false  and this is an intermediate
 	if ($downsize && $downsize[3]) {
-		error_log(print_r($downsize,1));
 		$downsize[1] = intval($downsize[1]) / 2; 
 		$downsize[2] = intval($downsize[2]) / 2;
 		return $downsize; 
