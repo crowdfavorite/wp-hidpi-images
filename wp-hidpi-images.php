@@ -17,13 +17,13 @@ function wphidpi_image_editors($editors) {
 add_filter('wp_image_editors', 'wphidpi_image_editors');
 
 function wphidpi_jpeg_quality($quality) {
+	// 0-100 scale
 	return 30;
 }
 
-
 // Insertion magic, will also work for backend and various get functions 
 function wphidpi_image_downsize($out, $id, $size) {
-
+	// @todo need to fallback if image size not found
 	remove_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 	if (is_array($size)) {
 		foreach ($size as &$component) {
@@ -37,13 +37,15 @@ function wphidpi_image_downsize($out, $id, $size) {
 	else {	
 		$size = $size.wphidpi_suffix();
 	}
-
-	if ($downsize) {
+	$downsize = image_downsize($id, $size);
+	// If downsize is false and this is an intermediate
+	if ($downsize && $downsize[3]) {
+		error_log(print_r($downsize,1));
 		$downsize[1] = intval($downsize[1]) / 2; 
 		$downsize[2] = intval($downsize[2]) / 2;
-		return array($downsize[0], $downsize[1], $downsize[2], $is_intermediate);
+		return $downsize; 
 	}
-	return false;
+ 	return false;
 }
 add_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 
@@ -73,7 +75,7 @@ function wphidpi_delete_image($path) {
 			$path_2x .= $bit.'.';
 		}
 	}
-	error_log($path_2x);
+
 	if ($path_2x) {
 		// Original file
 		if (file_exists($path_2x)) {
