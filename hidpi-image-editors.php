@@ -4,6 +4,7 @@ require_once ABSPATH.WPINC.'/class-wp-image-editor.php';
 require_once ABSPATH.WPINC.'/class-wp-image-editor-gd.php';
 require_once ABSPATH.WPINC.'/class-wp-image-editor-imagick.php';
 
+// @TODO Implement 2x image create for Imagick class
 Class WPHiDPI_Image_Editor_Imagick extends WP_Image_Editor_Imagick {
 	function multi_resize($sizes) {
 		$metadata = array();
