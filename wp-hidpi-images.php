@@ -8,21 +8,6 @@ Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
 
-
-function wphidpi_register_image_sizes() {
-	$image_sizes = get_intermediate_image_sizes();
-	if (is_array($image_sizes)) {
-		foreach ($image_sizes as $size => $size_data) {
-			$name = $size.'-@2x';
-			// @TODO make sure this actually just resizes to 2x for large images
-			$width = intval($data['width'] * 2);
-			$height = intval($data['height'] * 2);
-			$crop = intval($data['crop']);
-			add_image_size();
-		}
-	}
-}
-
 function wphidpi_image_editors($editors) {
 	require_once('hidpi-image-editors.php');
 	// Selection occurs based on a number of requirements but tests sequentially
