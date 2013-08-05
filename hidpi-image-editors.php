@@ -118,7 +118,6 @@ Class WPHiDPI_Image_Editor_GD extends WP_Image_Editor_GD {
 	protected function _resize_2x($orig_w, $orig_h, $image) {
 		$new_w = intval($orig_w) * 2;
 		$new_h = intval($orig_h) * 2;
-
 		
 		$resized = wp_imagecreatetruecolor($new_w, $new_h);
 		imagecopyresampled($resized, $image, 0, 0, 0, 0, $new_w, $new_h, $orig_w, $orig_h);

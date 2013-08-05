@@ -18,7 +18,7 @@ add_filter('wp_image_editors', 'wphidpi_image_editors');
 
 function wphidpi_jpeg_quality($quality) {
 	// 0-100 scale
-	return 30;
+	return 50;
 }
 
 // Insertion magic, will also work for backend and various get functions 
@@ -59,23 +59,8 @@ function wphidpi_suffix_base() {
 
 // Cleanup after ourselves on image delete
 function wphidpi_delete_image($path) {
-	$path_bits = explode('.', $path);
-	$path_2x = '';
-	$length = count($path_bits);
+	$path_2x = wphidpi_2x_file_name($path);
 	$uploadpath = wp_upload_dir();
-	foreach ($path_bits as $key => $bit) {
-		if ($length - 1 == $key) {
-			$path_2x .= wphidpi_suffix().'.'.$bit;		
-			break;
-		}	
-		else if ($length - 2 == $key) {
-			$path_2x .= $bit;
-		}
-		else {
-			$path_2x .= $bit.'.';
-		}
-	}
-
 	if ($path_2x) {
 		// Original file
 		if (file_exists($path_2x)) {
@@ -90,3 +75,62 @@ function wphidpi_delete_image($path) {
 	return $path;
 }
 add_filter('wp_delete_file', 'wphidpi_delete_image');
+
+function wphidpi_2x_file_name($path) {
+	$path_bits = explode('.', $path);
+	$path_2x = '';
+	$length = count($path_bits);
+	foreach ($path_bits as $key => $bit) {
+		if ($length - 1 == $key) {
+			$path_2x .= wphidpi_suffix().'.'.$bit;		
+			break;
+		}	
+		else if ($length - 2 == $key) {
+			$path_2x .= $bit;
+		}
+		else {
+			$path_2x .= $bit.'.';
+		}
+	}
+
+	return $path_2x;
+}
+
+// Filter the content for images inserted prior to activation
+function wphidpi_replace_content_images($content) {
+	$upload_path_data = wp_upload_dir();
+	$upload_base_url = $upload_path_data['baseurl'];
+	$upload_base_path = $upload_path_data['basedir'];
+	// Ahh, regex
+
+	$regex = '/src=[\'"]'.preg_quote($upload_base_url, '/').'(.+?)[\'"]/i';
+	if (preg_match_all($regex, $content, $matches)) {
+		foreach ($matches[1] as $index => $match) {
+			$path_2x = wphidpi_2x_file_name($match);
+			// Check if 2x version exists
+			if (file_exists($upload_base_path.$path_2x)) {
+				// Replace in content, make sure to replace src as to not catch plain text or links to images
+				$replace = 'src="'.esc_url($upload_base_url.$path_2x).'"';
+				$original = $matches[0][$index];
+				$content = str_replace($original, $replace, $content);
+			}
+		}
+	}
+	return $content;
+}
+add_filter('the_content', 'wphidpi_replace_content_images');
+
+// Dont insert 2x version into the content
+function wphidpi_remove_downsize_filter() {
+	remove_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
+}
+add_action('wp_ajax_send-attachment-to-editor', 'wphidpi_remove_downsize_filter', 0);
+
+function wphidpi_add_downsize_filter($html) {
+	add_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
+	// This is a filter
+	return $html;
+}
+// Run this after everything else,
+// Want to make sure filter isn't run if other filters call image_downsize 
+add_filter('media_send_to_editor', 'wphidpi_add_downsize_filter', 99999);
