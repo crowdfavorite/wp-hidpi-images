@@ -17,14 +17,13 @@ function wphidpi_image_editors($editors) {
 add_filter('wp_image_editors', 'wphidpi_image_editors');
 
 function wphidpi_jpeg_quality($quality) {
+	// This can be changed by coming in later on the jpeg_quality filter
 	// 0-100 scale
 	return 50;
 }
 
 // Insertion magic, will also work for backend and various get functions 
 function wphidpi_image_downsize($out, $id, $size) {
-	
-	remove_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 	if (is_array($size)) {
 		foreach ($size as &$component) {
 			$component = intval($component) * 2;	
@@ -37,7 +36,9 @@ function wphidpi_image_downsize($out, $id, $size) {
 	else {	
 		$size = $size.wphidpi_suffix();
 	}
+	remove_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 	$downsize = image_downsize($id, $size);
+	add_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 
 	// If downsize isn't false  and this is an intermediate
 	if ($downsize && $downsize[3]) {
@@ -45,7 +46,7 @@ function wphidpi_image_downsize($out, $id, $size) {
 		$downsize[2] = intval($downsize[2]) / 2;
 		return $downsize; 
 	}
- 	return false;
+	return false;
 }
 add_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 
