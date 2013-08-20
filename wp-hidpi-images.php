@@ -8,6 +8,8 @@ Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
 
+define('WPHIDPI_VERSION', '0.1');
+
 function wphidpi_image_editors($editors) {
 	require_once('hidpi-image-editors.php');
 	// Selection occurs based on a number of requirements but tests sequentially
@@ -97,6 +99,41 @@ function wphidpi_2x_file_name($path) {
 	return $path_2x;
 }
 
+function wphidpi_full_file_name($path) {
+	$path_bits = explode('.', $path);
+	$path_full = '';
+	$length = count($path_bits);
+	foreach ($path_bits as $key => $bit) {
+		if ($length - 1 == $key) {
+			$path_full .= $bit;		
+			break;
+		}	
+		else if ($length - 2 == $key) {
+			// Find ending like -1900x200
+			if (preg_match('/(-[0-9]+?x[0-9]+)$/i', $bit, $matches)) {
+				// Want to split on characters, not bytes
+				if (function_exists('mb_strlen')) {
+					$path_full .= substr($bit, 0, mb_strlen($bit) - mb_strlen($matches[1]));
+				}
+				// Fallback to the byte wise strlen
+				else {
+					$path_full .= substr($bit, 0, strlen($bit) - strlen($matches[1]));
+				}
+			}
+			else {
+				$path_full .= $bit;
+			}
+			$path_full .= '.';
+
+		}
+		else {
+			$path_full.= $bit.'.';
+		}
+	}
+
+	return $path_full;
+}
+
 // Filter the content for images inserted prior to activation
 function wphidpi_replace_content_images($content) {
 	$upload_path_data = wp_upload_dir();
@@ -108,12 +145,23 @@ function wphidpi_replace_content_images($content) {
 	if (preg_match_all($regex, $content, $matches)) {
 		foreach ($matches[1] as $index => $match) {
 			$path_2x = wphidpi_2x_file_name($match);
-			// Check if 2x version exists
+			// Check if 2x version exists, replace if so
 			if (file_exists($upload_base_path.$path_2x)) {
 				// Replace in content, make sure to replace src as to not catch plain text or links to images
 				$replace = 'src="'.esc_url($upload_base_url.$path_2x).'"';
 				$original = $matches[0][$index];
 				$content = str_replace($original, $replace, $content);
+			}
+			// Replace with full path image
+			else {
+				$full_path = wphidpi_full_file_name($match);
+				if (file_exists($upload_base_path.$full_path)) {
+				// Replace in content, make sure to replace src as to not catch plain text or links to images
+				$replace = 'src="'.esc_url($upload_base_url.$full_path).'"';
+				$original = $matches[0][$index];
+				$content = str_replace($original, $replace, $content);
+			}
+
 			}
 		}
 	}
@@ -135,3 +183,15 @@ function wphidpi_add_downsize_filter($html) {
 // Run this after everything else,
 // Want to make sure filter isn't run if other filters call image_downsize 
 add_filter('media_send_to_editor', 'wphidpi_add_downsize_filter', 99999);
+
+function wphidpi_enqueue_js() {
+	if (file_exists(trailingslashit(plugin_dir_path(__FILE__)).'wp-hidpi-images.js')) {
+		$url = plugins_url('wp-hidpi-images.js', __FILE__);
+	}
+	else {
+		// Doest exist in plugins directory, try theme/plugins/wp-hidpi-images/wp-hidpi-images.js and add a filter
+		$url = apply_filters('wphidpi-js-url', trailingslashit(get_template_directory_uri()).'plugins/wp-hidpi-image/wp-hidpi-images.js');
+	}
+	wp_enqueue_script('wphidpi', $url, array('jquery'), WPHIDPI_VERSION, false);
+}
+add_action('wp_enqueue_scripts', 'wphidpi_enqueue_js');
