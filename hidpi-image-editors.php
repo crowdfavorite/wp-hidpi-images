@@ -67,9 +67,22 @@ Class WPHiDPI_Image_Editor_GD extends WP_Image_Editor_GD {
 			if (!is_wp_error($image)) {
 				$resized = $this->_save($image);
 				
+				$image_2x = null;
+
 				// @2x generation
-				$image_2x = $this->_resize_2x($resized['width'], $resized['height'], $image);
-				if (!is_wp_error($image_2x)) {
+				if ($size_data['crop']) {
+					$image_2x = $this->_resize_2x_cropped($resized['width'], $resized['height'], $image);
+				}
+				else if ($orig_size['width'] >= (2 * $resized['width']) && $orig_size['height'] >= (2 * $resized['height'])) {
+						$size_2x = array(
+							'width' => 2 * $resized['width'],
+							'height' => 2 * $resized['height'],
+						);
+						$image_2x = $this->_resize_2x($orig_size, $size_2x, $this->image);	
+				}
+
+
+				if (!empty($image_2x) && !is_wp_error($image_2x)) {
 					$file_data_2x = $this->get_output_format();
 					// Suffix, dest_path, extension so we generate a -@2x filename instead of 
 					// just the height and width of the new file
@@ -95,27 +108,25 @@ Class WPHiDPI_Image_Editor_GD extends WP_Image_Editor_GD {
 			$this->size = $orig_size;
 		}
 
-		// Full sized 2x image generation
-		$image_2x = $this->_resize_2x($orig_size['width'], $orig_size['height'], $this->image);
-		if (!is_wp_error($image_2x)) {
-			$file_data_2x = $this->get_output_format();
-			// Suffix, dest_path, extension so we generate a -@2x filename instead of 
-			// just the height and width of the new file
-			$filename_2x = $this->generate_filename(wphidpi_suffix_base(), null, $file_data_2x['1']);
-			add_filter('jpeg_quality', 'wphidpi_jpeg_quality');
-			$resized_2x = $this->_save($image_2x, $filename_2x);
-			remove_filter('jpeg_quality', 'wphidpi_jpeg_quality');
-			if (!is_wp_error($resized_2x) && $resized_2x) {
-				unset($resized_2x['path']);
-				$metadata[wphidpi_suffix_base()] = $resized_2x;
-			}
-			imagedestroy($image_2x);
-		}
-
 		return $metadata;
 	}
 
-	protected function _resize_2x($orig_w, $orig_h, $image) {
+	protected function _resize_2x($orig_size, $size_2x, $image) {
+		if (isset($size_2x['width']) && isset($size_2x['height']) && isset($orig_size['height']) && isset($orig_size['width'])) {
+			$resized = wp_imagecreatetruecolor($size_2x['width'], $size_2x['height']);
+			imagecopyresampled($resized, $image, 0, 0, 0, 0, $size_2x['width'], $size_2x['height'], $orig_size['width'], $orig_size['height']);
+			
+			if (is_resource($resized)) {
+				$this->update_size($size_2x['width'], $size_2x['height']);
+				return $resized;
+			}
+		}
+
+		return new WP_Error('image_2x_resize_error', __('Image 2x resize failed.'), $this->file);
+
+	}
+
+	protected function _resize_2x_cropped($orig_w, $orig_h, $image) {
 		$new_w = intval($orig_w) * 2;
 		$new_h = intval($orig_h) * 2;
 		
