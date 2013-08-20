@@ -156,11 +156,11 @@ function wphidpi_replace_content_images($content) {
 			else {
 				$full_path = wphidpi_full_file_name($match);
 				if (file_exists($upload_base_path.$full_path)) {
-				// Replace in content, make sure to replace src as to not catch plain text or links to images
-				$replace = 'src="'.esc_url($upload_base_url.$full_path).'"';
-				$original = $matches[0][$index];
-				$content = str_replace($original, $replace, $content);
-			}
+					// Replace in content, make sure to replace src as to not catch plain text or links to images
+					$replace = 'src="'.esc_url($upload_base_url.$full_path).'"';
+					$original = $matches[0][$index];
+					$content = str_replace($original, $replace, $content);
+				}
 
 			}
 		}
