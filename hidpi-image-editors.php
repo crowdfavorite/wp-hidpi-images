@@ -67,15 +67,14 @@ Class WPHiDPI_Image_Editor_GD extends WP_Image_Editor_GD {
 			if (!is_wp_error($image)) {
 				$resized = $this->_save($image);
 				
+			// @2x generation
 				$image_2x = null;
-
-				// @2x generation
 				$old_size = $this->size;
 				// Gets used in _save
 				$this->size = $orig_size;
+				
 				if ($size_data['crop']) {
 					$image_2x = $this->_resize_2x($resized, true);
-
 				}
 				// Not a crop, ensure that original is at least 2x of the size created
 				else if ($orig_size['width'] >= (2 * $resized['width']) && $orig_size['height'] >= (2 * $resized['height'])) {
@@ -98,8 +97,10 @@ Class WPHiDPI_Image_Editor_GD extends WP_Image_Editor_GD {
 					imagedestroy($image_2x);
 				}
 
-				// Set this back to the original image size
+				// Set this back to the original resized image size
 				$this->size = $old_size;
+
+			// End @2x generation
 
 				imagedestroy($image);
 
