@@ -184,14 +184,24 @@ function wphidpi_add_downsize_filter($html) {
 // Want to make sure filter isn't run if other filters call image_downsize 
 add_filter('media_send_to_editor', 'wphidpi_add_downsize_filter', 99999);
 
-function wphidpi_enqueue_js() {
-	if (file_exists(trailingslashit(plugin_dir_path(__FILE__)).'wp-hidpi-images.js')) {
-		$url = plugins_url('wp-hidpi-images.js', __FILE__);
-	}
-	else {
-		// Doest exist in plugins directory, try theme/plugins/wp-hidpi-images/wp-hidpi-images.js and add a filter
-		$url = apply_filters('wphidpi-js-url', trailingslashit(get_template_directory_uri()).'plugins/wp-hidpi-image/wp-hidpi-images.js');
-	}
-	wp_enqueue_script('wphidpi', $url, array('jquery'), WPHIDPI_VERSION, false);
+function wphidpi_js() {
+?>
+<script>
+(function($){ 
+	$(function() {
+		$('img').each(function(index){
+			var imageWidth = $(this).attr('width');
+			var imageHeight = $(this).attr('height');
+			if (!!imageWidth) {
+				$(this).css('max-width', imageWidth + 'px');
+			}
+			if (!!imageHeight) {
+				$(this).css('max-height', imageHeight + 'px');
+			}
+		});
+	});
+})(jQuery);
+</script>
+<?php
 }
-add_action('wp_enqueue_scripts', 'wphidpi_enqueue_js');
+add_action('wp_footer', 'wphidpi_js');
