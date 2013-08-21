@@ -8,6 +8,8 @@ Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
 
+if (!defined('WPHIDPI_VERSION')) { // loaded check
+
 define('WPHIDPI_VERSION', '0.1');
 
 function wphidpi_image_editors($editors) {
@@ -205,3 +207,6 @@ function wphidpi_js() {
 <?php
 }
 add_action('wp_footer', 'wphidpi_js');
+
+} // end loaded check
+
