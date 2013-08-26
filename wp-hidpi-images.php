@@ -12,6 +12,11 @@ if (!defined('WPHIDPI_VERSION')) { // loaded check
 
 define('WPHIDPI_VERSION', '0.1');
 
+// don't do any work in admin or feeds
+function wphidpi_enabled() {
+	return (bool) (!is_admin() && !is_feed());
+}
+
 function wphidpi_image_editors($editors) {
 	require_once('hidpi-image-editors.php');
 	// Selection occurs based on a number of requirements but tests sequentially
@@ -28,10 +33,13 @@ function wphidpi_jpeg_quality($quality) {
 
 // Insertion magic, will also work for backend and various get functions 
 function wphidpi_image_downsize($out, $id, $size) {
+	if (!wphidpi_enabled()) {
+		return false;
+	}
 	if (is_array($size)) {
 		foreach ($size as &$component) {
-			$component = intval($component) * 2;	
-		}		
+			$component = intval($component) * 2;
+		}
 	}
 	// Full treated differently
 	else if (strtolower($size) == 'full') {
@@ -138,6 +146,9 @@ function wphidpi_full_file_name($path) {
 
 // Filter the content for images inserted prior to activation
 function wphidpi_replace_content_images($content) {
+	if (!wphidpi_enabled()) {
+		return $content;
+	}
 	$upload_path_data = wp_upload_dir();
 	$upload_base_url = $upload_path_data['baseurl'];
 	$upload_base_path = $upload_path_data['basedir'];
