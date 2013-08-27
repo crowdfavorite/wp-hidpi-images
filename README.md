@@ -16,4 +16,4 @@ WP HiDPI Images is an easy to use plugin that serves images which look good on b
 ## Pre Existing Images
 
 - Existing media will not have the 2x sizes automatically generated. To do this it is recommended to use [Regenerate Thumbnails](http://wordpress.org/plugins/regenerate-thumbnails/) plugin.
-- Cropped images that have been inserted into the content and have not had their thumbnails regenerated will be replaced with the full version of the image, however the height and width restrictions will remain.
+- Cropped images that have been inserted into the content and have not had their thumbnails regenerated will be replaced with the full version of the image with a forced max height and width.
