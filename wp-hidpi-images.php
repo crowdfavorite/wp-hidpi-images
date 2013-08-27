@@ -152,8 +152,8 @@ function wphidpi_replace_content_images($content) {
 	$upload_path_data = wp_upload_dir();
 	$upload_base_url = $upload_path_data['baseurl'];
 	$upload_base_path = $upload_path_data['basedir'];
-	// Ahh, regex
 
+	// Ahh, regex
 	$regex = '/src=[\'"]'.preg_quote($upload_base_url, '/').'(.+?)[\'"]/i';
 	if (preg_match_all($regex, $content, $matches)) {
 		foreach ($matches[1] as $index => $match) {
