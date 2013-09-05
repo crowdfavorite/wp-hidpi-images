@@ -202,25 +202,13 @@ function wphidpi_js() {
 <script>
 (function($){ 
 	$(function() {
-		var $style = $('<style type="text/css"></style>'); 
-		var styleInner = '';
 		$('img').each(function(index){
 			var imageWidth = $(this).attr('width');
-			var imageHeight = $(this).attr('height');
-			var imageClass = 'js-hidpi-' + imageWidth + imageHeight;
-			styleInner += ' .' + imageClass + '{'; 
 
 			if (!!imageWidth) {
-				styleInner += ' width: ' + imageWidth + 'px;'
+				$(this).css('width', imageWidth + 'px');	
 			}
-			if (!!imageHeight) {
-				styleInner += ' max-height: ' + imageHeight + 'px;'
-			}
-			styleInner += '}';
-			$(this).addClass(imageClass);
 		});
-		$style.html(styleInner);
-		$('body').append($style);
 	});
 })(jQuery);
 </script>
