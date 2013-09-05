@@ -33,6 +33,7 @@ function wphidpi_jpeg_quality($quality) {
 
 // Insertion magic, will also work for backend and various get functions 
 function wphidpi_image_downsize($out, $id, $size) {
+	$orig_size = $size;
 	if (!wphidpi_enabled()) {
 		return false;
 	}
@@ -42,23 +43,31 @@ function wphidpi_image_downsize($out, $id, $size) {
 		}
 	}
 	// Full treated differently
-	else if (strtolower($size) == 'full') {
-		$size = wphidpi_suffix_base();
-	}
-	else {	
+	else if (strtolower($size) != 'full') {
 		$size = $size.wphidpi_suffix();
 	}
 	remove_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 	$downsize = image_downsize($id, $size);
 	add_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
-
+	
 	// If downsize isn't false  and this is an intermediate
 	if ($downsize && $downsize[3]) {
 		$downsize[1] = intval($downsize[1]) / 2; 
 		$downsize[2] = intval($downsize[2]) / 2;
-		return $downsize; 
 	}
-	return false;
+	else if ($downsize && $size != 'full') {
+		// Full sized but no 2x, serve with original dimensions but full sized source
+		$original_url = $downsize[0];
+		remove_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
+		$downsize_orig = image_downsize($id, $orig_size);
+		add_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
+		if ($downsize_orig) {
+			$downsize = $downsize_orig;	
+			$downsize[0] = $original_url;
+		}
+		
+	}
+	return $downsize;
 }
 add_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 
