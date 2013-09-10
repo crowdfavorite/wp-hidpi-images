@@ -1,16 +1,16 @@
 <?php
 /*
 Plugin Name: WP HiDPI Images
-Plugin URI: http://crowdfavorite.com/wordpress/plugins/ 
+Plugin URI: http://crowdfavorite.com/wordpress/plugins/
 Description: Create and insert high resolution images to support high DPI displays.
-Version: 0.1
+Version: 1.0
 Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
 
 if (!defined('WPHIDPI_VERSION')) { // loaded check
 
-define('WPHIDPI_VERSION', '0.1');
+define('WPHIDPI_VERSION', '1.0');
 
 // don't do any work in admin or feeds
 function wphidpi_enabled() {
@@ -31,7 +31,7 @@ function wphidpi_jpeg_quality($quality) {
 	return 50;
 }
 
-// Insertion magic, will also work for backend and various get functions 
+// Insertion magic, will also work for backend and various get functions
 function wphidpi_image_downsize($out, $id, $size) {
 	$orig_size = $size;
 	if (!wphidpi_enabled()) {
@@ -49,10 +49,10 @@ function wphidpi_image_downsize($out, $id, $size) {
 	remove_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 	$downsize = image_downsize($id, $size);
 	add_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
-	
+
 	// If downsize isn't false  and this is an intermediate
 	if ($downsize && $downsize[3]) {
-		$downsize[1] = intval($downsize[1]) / 2; 
+		$downsize[1] = intval($downsize[1]) / 2;
 		$downsize[2] = intval($downsize[2]) / 2;
 	}
 	else if ($downsize && $size != 'full') {
@@ -62,10 +62,10 @@ function wphidpi_image_downsize($out, $id, $size) {
 		$downsize_orig = image_downsize($id, $orig_size);
 		add_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 		if ($downsize_orig) {
-			$downsize = $downsize_orig;	
+			$downsize = $downsize_orig;
 			$downsize[0] = $original_url;
 		}
-		
+
 	}
 	return $downsize;
 }
@@ -104,9 +104,9 @@ function wphidpi_2x_file_name($path) {
 	$length = count($path_bits);
 	foreach ($path_bits as $key => $bit) {
 		if ($length - 1 == $key) {
-			$path_2x .= wphidpi_suffix().'.'.$bit;		
+			$path_2x .= wphidpi_suffix().'.'.$bit;
 			break;
-		}	
+		}
 		else if ($length - 2 == $key) {
 			$path_2x .= $bit;
 		}
@@ -124,9 +124,9 @@ function wphidpi_full_file_name($path) {
 	$length = count($path_bits);
 	foreach ($path_bits as $key => $bit) {
 		if ($length - 1 == $key) {
-			$path_full .= $bit;		
+			$path_full .= $bit;
 			break;
-		}	
+		}
 		else if ($length - 2 == $key) {
 			// Find ending like -1900x200
 			if (preg_match('/(-[0-9]+?x[0-9]+)$/i', $bit, $matches)) {
@@ -203,22 +203,22 @@ function wphidpi_add_downsize_filter($html) {
 	return $html;
 }
 // Run this after everything else,
-// Want to make sure filter isn't run if other filters call image_downsize 
+// Want to make sure filter isn't run if other filters call image_downsize
 add_filter('media_send_to_editor', 'wphidpi_add_downsize_filter', 99999);
 
 function wphidpi_js() {
 ?>
 <script>
-(function($){ 
+(function($){
 	$(function() {
-		var $style = $('<style type="text/css"></style>'); 
+		var $style = $('<style type="text/css"></style>');
 		var styleInner = '';
 		$('img').each(function(index){
 			var imageWidth = $(this).attr('width');
 			var imageHeight = $(this).attr('height');
 			if (!!imageHeight && !!imageWidth) {
 				var imageClass = 'js-hidpi-' + imageWidth + imageHeight;
-				styleInner += ' .' + imageClass + '{'; 
+				styleInner += ' .' + imageClass + '{';
 
 				if (!!imageWidth) {
 					styleInner += ' max-width: ' + imageWidth + 'px;'
