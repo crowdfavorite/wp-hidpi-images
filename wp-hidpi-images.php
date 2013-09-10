@@ -1,14 +1,21 @@
 <?php
 /*
 Plugin Name: WP HiDPI Images
-Plugin URI: http://crowdfavorite.com/wordpress/plugins/ 
+Plugin URI: http://crowdfavorite.com/wordpress/plugins/
 Description: Create and insert high resolution images to support high DPI displays.
-Version: 0.1
+Version: 1.0
 Author: Crowd Favorite
 Author URI: http://crowdfavorite.com
 */
 
-define('WPHIDPI_VERSION', '0.1');
+if (!defined('WPHIDPI_VERSION')) { // loaded check
+
+define('WPHIDPI_VERSION', '1.0');
+
+// don't do any work in admin or feeds
+function wphidpi_enabled() {
+	return (bool) (!is_admin() && !is_feed());
+}
 
 function wphidpi_image_editors($editors) {
 	require_once('hidpi-image-editors.php');
@@ -24,18 +31,19 @@ function wphidpi_jpeg_quality($quality) {
 	return 50;
 }
 
-// Insertion magic, will also work for backend and various get functions 
+// Insertion magic, will also work for backend and various get functions
 function wphidpi_image_downsize($out, $id, $size) {
+	$orig_size = $size;
+	if (!wphidpi_enabled()) {
+		return false;
+	}
 	if (is_array($size)) {
 		foreach ($size as &$component) {
-			$component = intval($component) * 2;	
-		}		
+			$component = intval($component) * 2;
+		}
 	}
 	// Full treated differently
-	else if (strtolower($size) == 'full') {
-		$size = wphidpi_suffix_base();
-	}
-	else {	
+	else if (strtolower($size) != 'full') {
 		$size = $size.wphidpi_suffix();
 	}
 	remove_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
@@ -44,11 +52,22 @@ function wphidpi_image_downsize($out, $id, $size) {
 
 	// If downsize isn't false  and this is an intermediate
 	if ($downsize && $downsize[3]) {
-		$downsize[1] = intval($downsize[1]) / 2; 
+		$downsize[1] = intval($downsize[1]) / 2;
 		$downsize[2] = intval($downsize[2]) / 2;
-		return $downsize; 
 	}
-	return false;
+	else if ($downsize && $size != 'full') {
+		// Full sized but no 2x, serve with original dimensions but full sized source
+		$original_url = $downsize[0];
+		remove_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
+		$downsize_orig = image_downsize($id, $orig_size);
+		add_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
+		if ($downsize_orig) {
+			$downsize = $downsize_orig;
+			$downsize[0] = $original_url;
+		}
+
+	}
+	return $downsize;
 }
 add_filter('image_downsize', 'wphidpi_image_downsize', 10, 3);
 
@@ -85,9 +104,9 @@ function wphidpi_2x_file_name($path) {
 	$length = count($path_bits);
 	foreach ($path_bits as $key => $bit) {
 		if ($length - 1 == $key) {
-			$path_2x .= wphidpi_suffix().'.'.$bit;		
+			$path_2x .= wphidpi_suffix().'.'.$bit;
 			break;
-		}	
+		}
 		else if ($length - 2 == $key) {
 			$path_2x .= $bit;
 		}
@@ -105,9 +124,9 @@ function wphidpi_full_file_name($path) {
 	$length = count($path_bits);
 	foreach ($path_bits as $key => $bit) {
 		if ($length - 1 == $key) {
-			$path_full .= $bit;		
+			$path_full .= $bit;
 			break;
-		}	
+		}
 		else if ($length - 2 == $key) {
 			// Find ending like -1900x200
 			if (preg_match('/(-[0-9]+?x[0-9]+)$/i', $bit, $matches)) {
@@ -136,11 +155,14 @@ function wphidpi_full_file_name($path) {
 
 // Filter the content for images inserted prior to activation
 function wphidpi_replace_content_images($content) {
+	if (!wphidpi_enabled()) {
+		return $content;
+	}
 	$upload_path_data = wp_upload_dir();
 	$upload_base_url = $upload_path_data['baseurl'];
 	$upload_base_path = $upload_path_data['basedir'];
-	// Ahh, regex
 
+	// Ahh, regex
 	$regex = '/src=[\'"]'.preg_quote($upload_base_url, '/').'(.+?)[\'"]/i';
 	if (preg_match_all($regex, $content, $matches)) {
 		foreach ($matches[1] as $index => $match) {
@@ -181,17 +203,43 @@ function wphidpi_add_downsize_filter($html) {
 	return $html;
 }
 // Run this after everything else,
-// Want to make sure filter isn't run if other filters call image_downsize 
+// Want to make sure filter isn't run if other filters call image_downsize
 add_filter('media_send_to_editor', 'wphidpi_add_downsize_filter', 99999);
 
-function wphidpi_enqueue_js() {
-	if (file_exists(trailingslashit(plugin_dir_path(__FILE__)).'wp-hidpi-images.js')) {
-		$url = plugins_url('wp-hidpi-images.js', __FILE__);
-	}
-	else {
-		// Doest exist in plugins directory, try theme/plugins/wp-hidpi-images/wp-hidpi-images.js and add a filter
-		$url = apply_filters('wphidpi-js-url', trailingslashit(get_template_directory_uri()).'plugins/wp-hidpi-image/wp-hidpi-images.js');
-	}
-	wp_enqueue_script('wphidpi', $url, array('jquery'), WPHIDPI_VERSION, false);
+function wphidpi_js() {
+?>
+<script>
+(function($){
+	$(function() {
+		var $style = $('<style type="text/css"></style>');
+		var styleInner = '';
+		$('img').each(function(index){
+			var imageWidth = $(this).attr('width');
+			var imageHeight = $(this).attr('height');
+			if (!!imageHeight && !!imageWidth) {
+				var imageClass = 'js-hidpi-' + imageWidth + imageHeight;
+				styleInner += ' .' + imageClass + '{';
+
+				if (!!imageWidth) {
+					styleInner += ' max-width: ' + imageWidth + 'px;'
+				}
+				if (!!imageHeight) {
+					styleInner += ' max-height: ' + imageHeight + 'px;'
+				}
+				styleInner += '}';
+				$(this).addClass(imageClass);
+			}
+		});
+		if (styleInner != '') {
+			$style.html(styleInner);
+			$('body').append($style);
+		}
+	});
+})(jQuery);
+</script>
+<?php
 }
-add_action('wp_enqueue_scripts', 'wphidpi_enqueue_js');
+add_action('wp_footer', 'wphidpi_js');
+
+} // end loaded check
+
